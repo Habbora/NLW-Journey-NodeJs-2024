@@ -1,0 +1,85 @@
+import { env } from '../env';
+import type { FastifyInstance } from "fastify";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from 'zod'
+import { prisma } from "../lib/prisma";
+import { getMailClient } from "../lib/mails";
+import nodemailer from 'nodemailer'
+import { dayjs } from "../lib/dayjs";
+
+export async function confirmTrip(app: FastifyInstance) {
+    app.withTypeProvider<ZodTypeProvider>().get('/trips/:tripId/confirm', {
+        schema: {
+            params: z.object({
+                tripId: z.string().uuid(),
+            })
+        }
+    }, async (request, response) => {
+        const { tripId } = request.params
+
+        const trip = await prisma.trip.findUnique({
+            where: {
+                id: tripId
+            },
+            include: {
+                participants: {
+                    where: {
+                        is_owner: false,
+                    }
+                }
+            }
+        })
+
+        if (!trip) { throw new Error('Trip not found') }
+
+        if (trip.is_confirmed) { return response.redirect(`${env.WEB_BASE_URL}/trips/${tripId}`) }
+
+        await prisma.trip.update({
+            where: { id: tripId },
+            data: { is_confirmed: true },
+        })
+
+        // const participants = await prisma.participant.findMany({
+        //     where: {
+        //         trip_id: tripId,
+        //         is_confirmed: false,
+        //     }
+        // })
+
+        const formattedStartDate = dayjs(trip.starts_at).format('LL')
+        const formattedEndDate = dayjs(trip.ends_at).format('LL')
+
+        const mail = await getMailClient()
+
+        await Promise.all([
+            trip.participants.map(async (participant) => {
+                const comfirmationLink = `${env.WEB_BASE_URL}/participants/${participant.id}/confirm`
+
+                const message = await mail.sendMail({
+                    from: {
+                        name: 'Equipe Alisson',
+                        address: 'admin@habbora.com.br',
+                    },
+                    to: participant.email,
+                    subject: 'Confirmação de Convite de Viagem',
+                     html: `
+                        <div>
+                            <p>Você foi convidado para um grupo de viagem para 
+                            <strong>${trip.destination}</strong>, 
+                            partindo no dia <strong>${formattedStartDate}</strong> 
+                            até o dia <strong>${formattedEndDate}</strong></p>
+                            <p></p>
+                            <p><a href="${comfirmationLink}">Confirmar sua viagem aqui</a></p>
+                            <p></p>
+                            <p>Caso você não saiba do que se trata esse e-mail, apenas ignore esse e-mail.</p>
+                        </div>
+                    `.trim(),
+                })
+
+                console.log(nodemailer.getTestMessageUrl(message))
+            })
+        ])
+
+        return { trip }
+    })
+}
