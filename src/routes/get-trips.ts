@@ -17,7 +17,7 @@ export async function getTrip(app: FastifyInstance) {
             where: { id: tripId }
         })
 
-        if (!trip) { throw new Error('Trip not found') }
+        if (!trip) { throw new ClientError('Trip not found') }
 
         return { trip: trip }
     })

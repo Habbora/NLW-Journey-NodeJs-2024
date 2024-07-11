@@ -15,6 +15,7 @@ import { env } from './env';
 import { updateTrip } from './routes/update-trip';
 import { getTripDetails } from './routes/get-trip-details';
 import { getParticipantDetails } from './routes/get-participant-details';
+import { ClientErrorHandler } from './error-handler';
 
 const app = fastify()
 
@@ -25,6 +26,8 @@ app.register(fastifyCors, {
 // Add schema validator and serializer
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
+
+app.setErrorHandler(ClientErrorHandler)
 
 app.register(createTrips)
 app.register(confirmTrip)

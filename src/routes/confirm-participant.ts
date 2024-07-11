@@ -3,6 +3,7 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from 'zod';
 import { prisma } from "../lib/prisma";
 import { env } from "../env";
+import { ClientClientError } from "../ClientErrors/client-ClientError";
 
 export async function ConfirmParticipant(app: FastifyInstance) {
     app.withTypeProvider<ZodTypeProvider>().get('/participants/:participantId/confirm', {
@@ -20,7 +21,7 @@ export async function ConfirmParticipant(app: FastifyInstance) {
             }
         })
 
-        if (!participant) { throw new Error('Trip not found') }
+        if (!participant) { throw new ClientClientError('Trip not found') }
 
         if (!participant.is_confirmed) {
             await prisma.participant.update({

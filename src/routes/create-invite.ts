@@ -27,7 +27,7 @@ export async function createInvites(app: FastifyInstance) {
             }
         })
 
-        if (!trip) { throw new Error('Trip not found') }
+        if (!trip) { throw new ClientError('Trip not found') }
 
         const participant = await prisma.participant.create({
             data: {

@@ -26,7 +26,7 @@ export async function getParticipantDetails(app: FastifyInstance) {
         })
 
 
-        if (!participant) { throw new Error('Trip not found') }
+        if (!participant) { throw new ClientError('Trip not found') }
 
         return { participant: participant }
     })

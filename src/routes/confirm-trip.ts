@@ -30,7 +30,7 @@ export async function confirmTrip(app: FastifyInstance) {
             }
         })
 
-        if (!trip) { throw new Error('Trip not found') }
+        if (!trip) { throw new ClientError('Trip not found') }
 
         if (trip.is_confirmed) { return response.redirect(`${env.WEB_BASE_URL}/trips/${tripId}`) }
 
